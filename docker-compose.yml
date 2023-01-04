@@ -1,0 +1,42 @@
+version: "3"
+services:
+  db:
+    image: postgres:15.1-alpine3.17
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PW}
+      - POSTGRES_DB=demo
+      - PGDATA=/var/lib/postgresql/data/pg_data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    volumes:
+      - $PWD/init-database.sql:/docker-entrypoint-initdb.d/init.sql
+      - $PWD/pg_data:/var/lib/postgresql/data/pg_data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  pgadmin:
+    image: dpage/pgadmin4:6.18
+    container_name: pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_MAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PW}
+    ports:
+      - "5050:80"
+  server:
+    build: ./server/
+    container_name: express
+    ports:
+      - "3000:8080"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  pg_data:
+  
